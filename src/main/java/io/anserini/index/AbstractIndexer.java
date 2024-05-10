@@ -118,16 +118,19 @@ public abstract class AbstractIndexer implements Runnable {
         for (SourceDocument d : segment) {
           if (!d.indexable()) {
             counters.unindexable.incrementAndGet();
+            LOG.warn("Skipping " + d.id() + " due to unindexable content.");
             continue;
           }
 
           try {
             if (whitelistDocids != null && !whitelistDocids.contains(d.id())) {
               counters.skipped.incrementAndGet();
+              LOG.warn("Skipping " + d.id() + " due to whitelist.");
               continue;
             }
 
             Document doc = generator.createDocument(d);
+            LOG.info("generated document for " + d.id());
             if (args.uniqueDocid) {
               // Note that we're reading the config directly, which is within scope.
               writer.updateDocument(new Term("id", d.id()), doc);
@@ -175,7 +178,7 @@ public abstract class AbstractIndexer implements Runnable {
         LOG.debug(inputFile.getParent().getFileName().toString() + File.separator +
             inputFile.getFileName().toString() + ": " + cnt + " docs added.");
       } catch (Exception e) {
-        LOG.error(Thread.currentThread().getName() + ": Unexpected Exception:", e.getMessage());
+        LOG.error(Thread.currentThread().getName() + ": Unexpected Exception:", Thread.currentThread().getName(), e);
       }
     }
   }
