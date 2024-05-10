@@ -16,6 +16,7 @@ run.*
 log.*
 *.log
 out.*
+*.jar
 runs.regression/
 runs.jdiq2018/
 src/main/resources/solr/anserini-twitter/conf/lang/
