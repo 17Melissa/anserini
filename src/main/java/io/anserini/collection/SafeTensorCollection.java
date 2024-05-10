@@ -16,16 +16,19 @@ public class SafeTensorCollection extends DocumentCollection<SafeTensorCollectio
         this.path = path;
         this.allowedFileSuffix = new HashSet<>();
         this.allowedFileSuffix.add(".safetensors");
+        System.out.println("Initialized SafeTensorCollection with path: " + path);
     }
 
     @Override
     public FileSegment<Document> createFileSegment(Path p) throws IOException {
+        System.out.println("Creating file segment for path: " + p);
         return new SafeTensorCollection.Segment(p);
     }
 
     @Override
     public FileSegment<Document> createFileSegment(BufferedReader bufferedReader) throws IOException {
-       return new SafeTensorCollection.Segment(bufferedReader);
+        System.out.println("Unsupported operation for BufferedReader input.");
+        throw new UnsupportedOperationException("Unimplemented method 'createFileSegment(BufferedReader)'");
     }
 
     public static class Segment extends FileSegment<Document> {
@@ -35,10 +38,7 @@ public class SafeTensorCollection extends DocumentCollection<SafeTensorCollectio
             super(path);
             buffer = readFile(path);
             buffer.order(ByteOrder.LITTLE_ENDIAN); // Assuming the tensor data is stored in little endian format
-        }
-        public Segment(BufferedReader bufferedReader) throws IOException {
-            super(bufferedReader);
-            throw new UnsupportedOperationException("Unimplemented method 'Segment(BufferedReader bufferedReader)'");
+            System.out.println("File read into ByteBuffer for path: " + path);
         }
 
         private ByteBuffer readFile(Path path) throws IOException {
@@ -47,26 +47,31 @@ public class SafeTensorCollection extends DocumentCollection<SafeTensorCollectio
                 ByteBuffer buf = ByteBuffer.allocate((int) channel.size());
                 channel.read(buf);
                 buf.flip();
+                System.out.println("Read file into buffer: " + path);
                 return buf;
             }
         }
 
-        
+        @Override
         public boolean hasNext() {
+            System.out.println("Checking if there's another document in the buffer.");
             return buffer.hasRemaining();
         }
 
-        
+        @Override
         public Document next() {
             if (!hasNext()) {
+                System.out.println("No more documents available.");
                 throw new NoSuchElementException("No more documents in the file.");
             }
             return parseNextDocument();
         }
 
         private Document parseNextDocument() {
+            System.out.println("Parsing next document.");
             String id = readNextString();
             ByteBuffer content = readTensorData();
+            System.out.println("Created document with ID: " + id);
             return new Document(id, content);
         }
 
@@ -74,56 +79,53 @@ public class SafeTensorCollection extends DocumentCollection<SafeTensorCollectio
             int length = buffer.getInt();
             byte[] bytes = new byte[length];
             buffer.get(bytes);
-            return new String(bytes);
+            String result = new String(bytes);
+            System.out.println("Read string of length " + length + ": " + result);
+            return result;
         }
 
         private ByteBuffer readTensorData() {
-            // Read metadata or header to understand tensor structure
             int dtypeLength = buffer.getInt();
             byte[] dtypeBytes = new byte[dtypeLength];
             buffer.get(dtypeBytes);
             String dtype = new String(dtypeBytes);
-        
-            // Determine the size in bytes per element based on dtype
+            System.out.println("Data type of tensor: " + dtype);
+
             int bytesPerElement = getBytesPerElement(dtype);
-        
-            int numDimensions = buffer.getInt(); // Reading number of dimensions
+            int numDimensions = buffer.getInt();
+            System.out.println("Number of dimensions: " + numDimensions);
             int[] shape = new int[numDimensions];
             for (int i = 0; i < numDimensions; i++) {
-                shape[i] = buffer.getInt(); // Reading each dimension
+                shape[i] = buffer.getInt();
+                System.out.println("Dimension " + i + ": " + shape[i]);
             }
-        
-            // Calculate total number of elements
+
             int totalElements = 1;
             for (int dim : shape) {
                 totalElements *= dim;
             }
-        
+
             ByteBuffer slice = buffer.slice();
             slice.limit(totalElements * bytesPerElement);
             buffer.position(buffer.position() + totalElements * bytesPerElement);
+            System.out.println("Read tensor data with total elements: " + totalElements);
             return slice;
         }
-        
+
         private int getBytesPerElement(String dtype) {
-            switch (dtype) {
-                case "F32": case "I32": case "U32":
-                    return 4;
-                case "F64": case "I64": case "U64":
-                    return 8;
-                case "F16": case "I16": case "U16":
-                    return 2;
-                case "U8": case "I8":
-                    return 1;
-                default:
-                    throw new IllegalArgumentException("Unsupported dtype: " + dtype);
-            }
+            int bytes = switch (dtype) {
+                case "F32", "I32", "U32" -> 4;
+                case "F64", "I64", "U64" -> 8;
+                case "F16", "I16", "U16" -> 2;
+                case "U8", "I8" -> 1;
+                default -> throw new IllegalArgumentException("Unsupported dtype: " + dtype);
+            };
+            System.out.println("Bytes per element for dtype " + dtype + ": " + bytes);
+            return bytes;
         }
-        
 
         @Override
         protected void readNext() throws IOException, ParseException, NoSuchElementException {
-            // TODO Auto-generated method stub
             throw new UnsupportedOperationException("Unimplemented method 'readNext'");
         }
     }
@@ -135,6 +137,7 @@ public class SafeTensorCollection extends DocumentCollection<SafeTensorCollectio
         public Document(String id, ByteBuffer content) {
             this.id = id;
             this.content = content;
+            System.out.println("Document object created with ID: " + id);
         }
 
         @Override
@@ -144,18 +147,18 @@ public class SafeTensorCollection extends DocumentCollection<SafeTensorCollectio
 
         @Override
         public String contents() {
-            // Convert content according to actual dtype and intended usage
             StringBuilder sb = new StringBuilder();
             content.rewind();
             while (content.hasRemaining()) {
                 sb.append(content.getFloat()).append(" "); // Assuming float data for simplicity
             }
-            return sb.toString().trim();
+            String result = sb.toString().trim();
+            System.out.println("Converted ByteBuffer to string content: " + result);
+            return result;
         }
 
         @Override
         public String raw() {
-            // Return raw binary data as a hexadecimal string
             return contents();  // Simplified to show content directly for demo purposes
         }
 
@@ -164,6 +167,4 @@ public class SafeTensorCollection extends DocumentCollection<SafeTensorCollectio
             return true; // Here, you might add logic to decide based on content or metadata
         }
     }
-
-
 }
