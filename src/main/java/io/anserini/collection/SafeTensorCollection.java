@@ -34,14 +34,24 @@ public class SafeTensorCollection extends DocumentCollection<SafeTensorCollectio
         this.allowedFileSuffix = new HashSet<>(Arrays.asList(".safetensor"));
     }
 
-    @Override
-    public FileSegment<Document> createFileSegment(Path p) throws IOException {
-        return new Segment(p);
-    }
+    // @Override
+    // public FileSegment<Document> createFileSegment(Path p) throws IOException {
+    //     return new Segment(p);
+    // }
+
+    // @Override
+    // public FileSegment<Document> createFileSegment(BufferedReader bufferedReader) throws IOException {
+    //     return new Segment(bufferedReader);
+    // }
 
     @Override
-    public FileSegment<Document> createFileSegment(BufferedReader bufferedReader) throws IOException {
-        return new Segment(bufferedReader);
+    public FileSegment<SafeTensorCollection.Document> createFileSegment(Path p) throws IOException {
+      return new SafeTensorCollection.Segment(p);
+    }
+  
+    @Override
+    public FileSegment<SafeTensorCollection.Document> createFileSegment(BufferedReader bufferedReader) throws IOException {
+      return new SafeTensorCollection.Segment(bufferedReader);
     }
 
     public static class Segment extends FileSegment<Document> {
