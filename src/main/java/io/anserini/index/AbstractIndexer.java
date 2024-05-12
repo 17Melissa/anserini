@@ -232,7 +232,8 @@ public abstract class AbstractIndexer implements Runnable {
           Class.forName("io.anserini.collection." + args.collectionClass);
       this.collection = collectionClass.getConstructor(Path.class).newInstance(collectionPath);
     } catch (Exception e) {
-      throw new IllegalArgumentException(String.format("Unable to load collection class \"%s\".", args.collectionClass));
+      e.printStackTrace();
+      throw new IllegalArgumentException(String.format("Unable to load collection class \"%s\": %s", args.collectionClass, e.getMessage()), e);
     }
   }
 
